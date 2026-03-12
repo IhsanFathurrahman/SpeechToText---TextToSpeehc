@@ -1,5 +1,10 @@
 let recognition;
-let audioPlayer;
+let audioPlayer = null;
+
+
+// ============================
+// TAB SWITCH
+// ============================
 
 function showTTS(){
 
@@ -16,14 +21,23 @@ document.getElementById("ttsSection").classList.add("hidden");
 }
 
 
-// TTS PLAY
+// ============================
+// TEXT TO SPEECH
+// ============================
 
 async function speak(){
 
-let text=document.getElementById("ttsText").value;
-let voice=document.getElementById("voice").value;
+let text = document.getElementById("ttsText").value;
+let voice = document.getElementById("voice").value;
 
-let res=await fetch("/api/tts",{
+if(!text){
+alert("Teks kosong");
+return;
+}
+
+document.getElementById("status").innerText="Status: Membuat suara...";
+
+let res = await fetch("/api/tts",{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
@@ -31,39 +45,94 @@ headers:{
 body:JSON.stringify({text,voice})
 });
 
-let blob=await res.blob();
+let blob = await res.blob();
 
-let audioURL=URL.createObjectURL(blob);
+let audioURL = URL.createObjectURL(blob);
 
-audioPlayer=new Audio(audioURL);
+
+// hentikan audio lama
+if(audioPlayer){
+audioPlayer.pause();
+audioPlayer.currentTime = 0;
+}
+
+
+audioPlayer = new Audio(audioURL);
 
 audioPlayer.play();
 
-audioPlayer.ontimeupdate=function(){
+document.getElementById("status").innerText="Status: Memutar suara";
 
-let progress=(audioPlayer.currentTime/audioPlayer.duration)*100;
 
-document.getElementById("progress").style.width=progress+"%";
+// progress bar
+audioPlayer.ontimeupdate = function(){
 
-let seconds=Math.floor(audioPlayer.currentTime);
-let minutes=Math.floor(seconds/60);
-seconds=seconds%60;
+let progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
 
-document.getElementById("time").innerText=
-minutes+":"+(seconds<10?"0":"")+seconds;
+document.getElementById("progress").style.width = progress + "%";
+
+let seconds = Math.floor(audioPlayer.currentTime);
+let minutes = Math.floor(seconds / 60);
+
+seconds = seconds % 60;
+
+document.getElementById("time").innerText =
+minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+
+};
+
+
+// saat audio selesai
+audioPlayer.onended = function(){
+
+document.getElementById("progress").style.width = "0%";
+document.getElementById("time").innerText = "0:00";
+
+document.getElementById("status").innerText="Status: Selesai";
 
 }
 
 }
 
-// DOWNLOAD
+
+// ============================
+// STOP AUDIO
+// ============================
+
+function stopAudio(){
+
+if(audioPlayer){
+
+audioPlayer.pause();
+audioPlayer.currentTime = 0;
+
+document.getElementById("progress").style.width="0%";
+document.getElementById("time").innerText="0:00";
+
+document.getElementById("status").innerText="Status: Audio dihentikan";
+
+}
+
+}
+
+
+// ============================
+// DOWNLOAD MP3
+// ============================
 
 async function downloadAudio(){
 
-let text=document.getElementById("ttsText").value;
-let voice=document.getElementById("voice").value;
+let text = document.getElementById("ttsText").value;
+let voice = document.getElementById("voice").value;
 
-let res=await fetch("/api/tts",{
+if(!text){
+alert("Teks kosong");
+return;
+}
+
+document.getElementById("status").innerText="Status: Mengunduh audio...";
+
+let res = await fetch("/api/tts",{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
@@ -71,19 +140,23 @@ headers:{
 body:JSON.stringify({text,voice})
 });
 
-let blob=await res.blob();
+let blob = await res.blob();
 
-let link=document.createElement("a");
+let link = document.createElement("a");
 
-link.href=URL.createObjectURL(blob);
-link.download="tts_audio.mp3";
+link.href = URL.createObjectURL(blob);
+link.download = "tts_audio.mp3";
 
 link.click();
+
+document.getElementById("status").innerText="Status: Download selesai";
 
 }
 
 
-// STT
+// ============================
+// SPEECH TO TEXT
+// ============================
 
 function startListening(){
 
@@ -93,51 +166,58 @@ recognition.lang = "id-ID";
 
 recognition.start();
 
-document.getElementById("status").innerText = "Status: Mendengarkan";
+document.getElementById("status").innerText="Status: Mendengarkan";
 
 document.getElementById("micBtn").classList.add("mic-active");
 
+// reset text
+document.getElementById("sttResult").value="";
 
-recognition.onresult = function(e){
+recognition.onresult=function(e){
 
 document.getElementById("sttResult").value =
 e.results[0][0].transcript;
 
 };
 
-
-recognition.onend = function(){
+recognition.onend=function(){
 
 document.getElementById("micBtn").classList.remove("mic-active");
-document.getElementById("status").innerText = "Status: Rekaman berhenti";
+
+document.getElementById("status").innerText="Status: Rekaman berhenti";
 
 };
 
 }
 
-function stopAudio(){
+
+// ============================
+// STOP STT
+// ============================
+
+function stopSTT(){
 
 if(recognition){
-
 recognition.stop();
-
 }
 
 document.getElementById("micBtn").classList.remove("mic-active");
 
-document.getElementById("status").innerText = "Status: Rekaman dihentikan";
+document.getElementById("status").innerText="Status: Rekaman dihentikan";
 
 }
 
 
-// COPY
+// ============================
+// COPY TEXT
+// ============================
 
 function copySTT(){
 
-let text=document.getElementById("sttResult").value;
+let text = document.getElementById("sttResult").value;
 
 navigator.clipboard.writeText(text);
 
-alert("Text disalin");
+alert("Teks berhasil disalin");
 
 }

@@ -1,4 +1,5 @@
 let recognition;
+let audioPlayer;
 
 function showTTS(){
 
@@ -19,15 +20,15 @@ document.getElementById("ttsSection").classList.add("hidden");
 
 async function speak(){
 
-let text=document.getElementById("ttsText").value;
-let voice=document.getElementById("voice").value;
+let text = document.getElementById("ttsText").value;
+let voice = document.getElementById("voice").value;
 
 if(!text){
 alert("Teks kosong");
 return;
 }
 
-let res=await fetch("/api/tts",{
+let res = await fetch("/api/tts",{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
@@ -35,15 +36,28 @@ headers:{
 body:JSON.stringify({text,voice})
 });
 
-let blob=await res.blob();
+let blob = await res.blob();
 
-let audioURL=URL.createObjectURL(blob);
+let audioURL = URL.createObjectURL(blob);
 
-let audio=new Audio(audioURL);
+audioPlayer = new Audio(audioURL);
 
-audio.play();
+audioPlayer.play();
 
 document.getElementById("status").innerText="Status: Memutar suara";
+
+}
+
+function stopAudio(){
+
+if(audioPlayer){
+
+audioPlayer.pause();
+audioPlayer.currentTime = 0;
+
+document.getElementById("status").innerText="Status: Audio dihentikan";
+
+}
 
 }
 

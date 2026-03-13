@@ -35,7 +35,9 @@ alert("Teks kosong");
 return;
 }
 
-document.getElementById("status").innerText="Status: Membuat suara...";
+document.getElementById("status").innerText = "Status: Membuat suara...";
+
+try{
 
 let res = await fetch("/api/tts",{
 method:"POST",
@@ -45,9 +47,27 @@ headers:{
 body:JSON.stringify({text,voice})
 });
 
-let blob = await res.blob();
 
-let audioURL = URL.createObjectURL(blob);
+// cek kalau API error
+if(!res.ok){
+
+let err;
+
+try{
+err = await res.json();
+}catch{
+err = {error:"Server error"};
+}
+
+alert("TTS Error: " + (err.detail || err.error));
+
+document.getElementById("status").innerText="Status: Error";
+
+return;
+}
+
+
+let blob = await res.blob();
 
 
 // hentikan audio lama
@@ -57,15 +77,21 @@ audioPlayer.currentTime = 0;
 }
 
 
+let audioURL = URL.createObjectURL(blob);
+
 audioPlayer = new Audio(audioURL);
 
-audioPlayer.play();
+
+// play audio
+await audioPlayer.play();
 
 document.getElementById("status").innerText="Status: Memutar suara";
 
 
 // progress bar
 audioPlayer.ontimeupdate = function(){
+
+if(!audioPlayer.duration) return;
 
 let progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
 
@@ -82,7 +108,7 @@ minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
 };
 
 
-// saat audio selesai
+// selesai
 audioPlayer.onended = function(){
 
 document.getElementById("progress").style.width = "0%";
@@ -90,10 +116,20 @@ document.getElementById("time").innerText = "0:00";
 
 document.getElementById("status").innerText="Status: Selesai";
 
-}
+};
+
+
+}catch(error){
+
+console.error(error);
+
+document.getElementById("status").innerText="Status: Error memutar audio";
+
+alert("Gagal memutar audio");
 
 }
 
+}
 
 // ============================
 // STOP AUDIO
